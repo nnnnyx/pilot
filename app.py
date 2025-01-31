@@ -1,6 +1,8 @@
 import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 
 # Google Sheets Setup
 def connect_to_google_sheet():
@@ -10,11 +12,15 @@ def connect_to_google_sheet():
     # Load credentials from the JSON file
     creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
     
+    # Refresh the token if expired
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    
     # Authorize the client
     client = gspread.authorize(creds)
     
     # Open the Google Sheet by name
-    sheet = client.open("Pilot").sheet1  # Updated to use the sheet name "Pilot"
+    sheet = client.open("Pilot").sheet1  # Replace with your sheet name
     return sheet
 
 # Streamlit App
