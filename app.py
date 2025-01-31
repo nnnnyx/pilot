@@ -4,10 +4,17 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # Google Sheets Setup
 def connect_to_google_sheet():
+    # Define the scope
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("your-credentials.json", scope)
+    
+    # Load credentials from the JSON file
+    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    
+    # Authorize the client
     client = gspread.authorize(creds)
-    sheet = client.open("Your Google Sheet Name").sheet1  # Replace with your sheet name
+    
+    # Open the Google Sheet by name
+    sheet = client.open("Pilot").sheet1  # Updated to use the sheet name "Pilot"
     return sheet
 
 # Streamlit App
@@ -32,21 +39,25 @@ def main():
     for policy in policies:
         st.subheader(f"{policy} Questions")
 
+        # Endorsement Type
         endorsement_type = st.selectbox(
             f"Endorsement Type for {policy}:",
             [f"Option {i}" for i in range(1, 14)]
         )
 
+        # System's Suggested Audit Resolution
         audit_resolution = st.radio(
             f"What was the system's suggested audit resolution for {policy}?",
             ["Yes", "No"]
         )
 
+        # Agree with AI's Resolution
         agree_with_ai = st.radio(
             f"Did you agree with the AI's resolution for {policy}?",
             ["Yes", "No"]
         )
 
+        # Explanation for Resolution
         explanation = st.selectbox(
             f"Please explain your resolution for {policy}:",
             [f"Option {i}" for i in range(1, 14)]
@@ -66,25 +77,28 @@ def main():
         if not account_name or not company_name or not project_name or not ics_link:
             st.error("Please fill out all required fields.")
         else:
-            # Connect to Google Sheet
-            sheet = connect_to_google_sheet()
+            try:
+                # Connect to Google Sheet
+                sheet = connect_to_google_sheet()
 
-            # Prepare data to append
-            for response in responses:
-                row = [
-                    account_name,
-                    company_name,
-                    project_name,
-                    ics_link,
-                    response["Policy"],
-                    response["Endorsement Type"],
-                    response["Audit Resolution"],
-                    response["Agree with AI"],
-                    response["Explanation"]
-                ]
-                sheet.append_row(row)
+                # Prepare data to append
+                for response in responses:
+                    row = [
+                        account_name,
+                        company_name,
+                        project_name,
+                        ics_link,
+                        response["Policy"],
+                        response["Endorsement Type"],
+                        response["Audit Resolution"],
+                        response["Agree with AI"],
+                        response["Explanation"]
+                    ]
+                    sheet.append_row(row)
 
-            st.success("Form submitted successfully!")
+                st.success("Form submitted successfully!")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
