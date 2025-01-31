@@ -1,8 +1,7 @@
 import streamlit as st
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
 
 # Google Sheets Setup
 def connect_to_google_sheet():
@@ -10,10 +9,10 @@ def connect_to_google_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     
     # Load credentials from the JSON file
-    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
     
     # Refresh the token if expired
-    if creds and creds.expired and creds.refresh_token:
+    if creds.expired:
         creds.refresh(Request())
     
     # Authorize the client
