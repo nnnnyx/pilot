@@ -19,8 +19,9 @@ def authenticate():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            # Use a console-based OAuth flow for headless environments
             flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
-            creds = flow.run_local_server(port=0)
+            creds = flow.run_console()  # Use run_console() instead of run_local_server()
         # Save the credentials for future use
         with open("token.json", "w") as token:
             token.write(creds.to_json())
