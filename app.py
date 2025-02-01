@@ -1,26 +1,42 @@
 import streamlit as st
-import pandas as pd
+import gspread
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 import os
-from datetime import datetime
 
-# File to store responses
-RESPONSES_FILE = "form_responses.csv"
+# Define the scope
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# Function to save responses to a CSV file
-def save_responses(responses):
-    # Create a DataFrame from the responses
-    df = pd.DataFrame(responses)
+# Function to authenticate with OAuth 2.0
+def authenticate():
+    creds = None
+    # Load existing credentials if they exist
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    # If no valid credentials, prompt the user to log in
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for future use
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
+    return creds
+
+# Google Sheets Setup
+def connect_to_google_sheet():
+    # Authenticate with OAuth 2.0
+    creds = authenticate()
     
-    # Add a timestamp to each response
-    df["Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Authorize the client
+    client = gspread.authorize(creds)
     
-    # Check if the file already exists
-    if os.path.exists(RESPONSES_FILE):
-        # Append to the existing file
-        df.to_csv(RESPONSES_FILE, mode="a", header=False, index=False)
-    else:
-        # Create a new file with headers
-        df.to_csv(RESPONSES_FILE, mode="w", header=True, index=False)
+    # Open the Google Sheet by name
+    sheet = client.open("Pilot").sheet1  # Replace with your sheet name
+    return sheet
 
 # Streamlit App
 def main():
@@ -94,8 +110,24 @@ def main():
             st.error("Please fill out all required fields.")
         else:
             try:
-                # Save responses to the CSV file
-                save_responses(responses)
+                # Connect to Google Sheet
+                sheet = connect_to_google_sheet()
+
+                # Prepare data to append
+                for response in responses:
+                    row = [
+                        response["Account Name"],
+                        response["Company Name"],
+                        response["Project Name"],
+                        response["ICS Link"],
+                        response["Policy"],
+                        response["Endorsement"],
+                        response["Audit Resolution"],
+                        response["Agree with AI"],
+                        response["Explanation"]
+                    ]
+                    sheet.append_row(row)
+
                 st.success("Form submitted successfully!")
             except Exception as e:
                 st.error(f"An error occurred: {e}")
