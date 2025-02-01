@@ -1,26 +1,26 @@
 import streamlit as st
-import gspread
-from google.oauth2.service_account import Credentials
-from google.auth.transport.requests import Request
+import pandas as pd
+import os
+from datetime import datetime
 
-# Google Sheets Setup
-def connect_to_google_sheet():
-    # Define the scope
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+# File to store responses
+RESPONSES_FILE = "form_responses.csv"
+
+# Function to save responses to a CSV file
+def save_responses(responses):
+    # Create a DataFrame from the responses
+    df = pd.DataFrame(responses)
     
-    # Load credentials from the JSON file
-    creds = Credentials.from_service_account_file("credentials.json", scopes=scope)
+    # Add a timestamp to each response
+    df["Timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Refresh the token if expired
-    if creds.expired:
-        creds.refresh(Request())
-    
-    # Authorize the client
-    client = gspread.authorize(creds)
-    
-    # Open the Google Sheet by name
-    sheet = client.open("Pilot").sheet1  # Replace with your sheet name
-    return sheet
+    # Check if the file already exists
+    if os.path.exists(RESPONSES_FILE):
+        # Append to the existing file
+        df.to_csv(RESPONSES_FILE, mode="a", header=False, index=False)
+    else:
+        # Create a new file with headers
+        df.to_csv(RESPONSES_FILE, mode="w", header=True, index=False)
 
 # Streamlit App
 def main():
@@ -44,38 +44,49 @@ def main():
     for policy in policies:
         st.subheader(f"{policy} Questions")
 
-        # Endorsement Type
-        endorsement_type = st.selectbox(
-            f"Endorsement Type for {policy}:",
-            [f"Option {i}" for i in range(1, 14)]
+        # Endorsement Selection (Multiple Endorsements per Policy)
+        endorsements = st.multiselect(
+            f"Select endorsements for {policy}:",
+            [f"Endorsement {i}" for i in range(1, 14)]  # 13 endorsement options
         )
 
-        # System's Suggested Audit Resolution
-        audit_resolution = st.radio(
-            f"What was the system's suggested audit resolution for {policy}?",
-            ["Yes", "No"]
-        )
+        # Questions for Each Endorsement
+        for endorsement in endorsements:
+            st.markdown(f"**{endorsement} Questions**")
 
-        # Agree with AI's Resolution
-        agree_with_ai = st.radio(
-            f"Did you agree with the AI's resolution for {policy}?",
-            ["Yes", "No"]
-        )
+            # System's Suggested Audit Resolution
+            audit_resolution = st.radio(
+                f"What was the system's suggested audit resolution for {endorsement}?",
+                ["Yes", "No"],
+                key=f"audit_{policy}_{endorsement}"  # Unique key for each radio button
+            )
 
-        # Explanation for Resolution
-        explanation = st.selectbox(
-            f"Please explain your resolution for {policy}:",
-            [f"Option {i}" for i in range(1, 14)]
-        )
+            # Agree with AI's Resolution
+            agree_with_ai = st.radio(
+                f"Did you agree with the AI's resolution for {endorsement}?",
+                ["Yes", "No"],
+                key=f"agree_{policy}_{endorsement}"  # Unique key for each radio button
+            )
 
-        # Store responses for this policy
-        responses.append({
-            "Policy": policy,
-            "Endorsement Type": endorsement_type,
-            "Audit Resolution": audit_resolution,
-            "Agree with AI": agree_with_ai,
-            "Explanation": explanation
-        })
+            # Explanation for Resolution
+            explanation = st.selectbox(
+                f"Please explain your resolution for {endorsement}:",
+                [f"Option {i}" for i in range(1, 14)],  # 13 explanation options
+                key=f"explain_{policy}_{endorsement}"  # Unique key for each selectbox
+            )
+
+            # Store responses for this endorsement
+            responses.append({
+                "Account Name": account_name,
+                "Company Name": company_name,
+                "Project Name": project_name,
+                "ICS Link": ics_link,
+                "Policy": policy,
+                "Endorsement": endorsement,
+                "Audit Resolution": audit_resolution,
+                "Agree with AI": agree_with_ai,
+                "Explanation": explanation
+            })
 
     # Submit Button
     if st.button("Submit"):
@@ -83,24 +94,8 @@ def main():
             st.error("Please fill out all required fields.")
         else:
             try:
-                # Connect to Google Sheet
-                sheet = connect_to_google_sheet()
-
-                # Prepare data to append
-                for response in responses:
-                    row = [
-                        account_name,
-                        company_name,
-                        project_name,
-                        ics_link,
-                        response["Policy"],
-                        response["Endorsement Type"],
-                        response["Audit Resolution"],
-                        response["Agree with AI"],
-                        response["Explanation"]
-                    ]
-                    sheet.append_row(row)
-
+                # Save responses to the CSV file
+                save_responses(responses)
                 st.success("Form submitted successfully!")
             except Exception as e:
                 st.error(f"An error occurred: {e}")
