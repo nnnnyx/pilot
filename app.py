@@ -71,6 +71,34 @@ def main():
         ["General Liability", "Automobile Liability", "Umbrella Liability", "Worker's Compensation"]
     )
 
+    # Named Endorsements
+    endorsements_list = [
+        "Additional Insured Endorsement",
+        "Additional Insured Endorsement for Ongoing Operations",
+        "Additional Insured Endorsement for Completed Operations",
+        "Primary Non-Contributory Endorsement",
+        "Waiver of Subrogation Endorsement",
+        "Notice of Cancellation Endorsement",
+        "Follow Form Endorsement"
+    ]
+
+    # Explanation Options
+    explanation_options = [
+        "Displayed endorsement doesn't meet the required endo (wrong algorithm)",
+        "Tooltip missing a relevant endo from the index (wrong extraction/algorithm)",
+        "Tooltip missing a relevant endo not found in the index (wrong extraction)",
+        "Tooltip missing relevant manuscript endo not in the index (wrong extraction)",
+        "Correct endo identified but there’s a pol numb gap (next algorithm phase)",
+        "Correct endo but there's a date gap (next algorithm phase)",
+        "Correct endo identified but there's a schedule gap (next algorithm phase)",
+        "Correct endo identified but there's a watermark gap (next algorithm phase)",
+        "Correct endo identified, but can't be used as AIE for Vendors (next algorithm phase)",
+        "Correct endo identified, but can't be used due to overridden gap (next algorithm phase)",
+        "Displayed code was extracted from different sources (wrong extraction)",
+        "No endorsements were identified, but Follow Form was provided (next algorithm phase)",
+        "No endorsements were identified, but provisions were given [For Umbrella Liability Only] (next algorithm phase)"
+    ]
+
     # Dynamic Questions for Selected Policies
     responses = []
     for policy in policies:
@@ -79,7 +107,7 @@ def main():
         # Endorsement Selection (Multiple Endorsements per Policy)
         endorsements = st.multiselect(
             f"Select endorsements for {policy}:",
-            [f"Endorsement {i}" for i in range(1, 14)]  # 13 endorsement options
+            endorsements_list
         )
 
         # Questions for Each Endorsement
@@ -105,7 +133,7 @@ def main():
             # Explanation for Resolution
             explanation = st.selectbox(
                 f"Please explain your resolution for {endorsement}:",
-                [""] + [f"Option {i}" for i in range(1, 14)],  # Add an empty option
+                [""] + explanation_options,  # Add an empty option
                 index=0,  # Default to the empty option
                 key=f"explain_{policy}_{endorsement}"  # Unique key for each selectbox
             )
