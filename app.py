@@ -19,18 +19,33 @@ def authenticate():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # Use a console-based OAuth flow for headless environments
+            # Use a manual OAuth flow for headless environments
             flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
-            creds = flow.run_console()  # Use run_console() instead of run_local_server()
-        # Save the credentials for future use
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
+            # Generate the authorization URL
+            auth_url, _ = flow.authorization_url(prompt="consent")
+            st.write("Please go to the following URL to authorize the app:")
+            st.write(auth_url)
+            # Ask the user to enter the authorization code
+            auth_code = st.text_input("Enter the authorization code:")
+            if auth_code:
+                # Fetch the token using the authorization code
+                flow.fetch_token(code=auth_code)
+                creds = flow.credentials
+                # Save the credentials for future use
+                with open("token.json", "w") as token:
+                    token.write(creds.to_json())
+            else:
+                st.error("Authorization code is required.")
+                return None
     return creds
 
 # Google Sheets Setup
 def connect_to_google_sheet():
     # Authenticate with OAuth 2.0
     creds = authenticate()
+    if not creds:
+        st.error("Authentication failed. Please try again.")
+        return None
     
     # Authorize the client
     client = gspread.authorize(creds)
@@ -75,6 +90,7 @@ def main():
             audit_resolution = st.radio(
                 f"What was the system's suggested audit resolution for {endorsement}?",
                 ["Yes", "No"],
+                index=None,  # No pre-selection
                 key=f"audit_{policy}_{endorsement}"  # Unique key for each radio button
             )
 
@@ -82,37 +98,45 @@ def main():
             agree_with_ai = st.radio(
                 f"Did you agree with the AI's resolution for {endorsement}?",
                 ["Yes", "No"],
+                index=None,  # No pre-selection
                 key=f"agree_{policy}_{endorsement}"  # Unique key for each radio button
             )
 
             # Explanation for Resolution
             explanation = st.selectbox(
                 f"Please explain your resolution for {endorsement}:",
-                [f"Option {i}" for i in range(1, 14)],  # 13 explanation options
+                [""] + [f"Option {i}" for i in range(1, 14)],  # Add an empty option
+                index=0,  # Default to the empty option
                 key=f"explain_{policy}_{endorsement}"  # Unique key for each selectbox
             )
 
             # Store responses for this endorsement
-            responses.append({
-                "Account Name": account_name,
-                "Company Name": company_name,
-                "Project Name": project_name,
-                "ICS Link": ics_link,
-                "Policy": policy,
-                "Endorsement": endorsement,
-                "Audit Resolution": audit_resolution,
-                "Agree with AI": agree_with_ai,
-                "Explanation": explanation
-            })
+            if audit_resolution and agree_with_ai and explanation:
+                responses.append({
+                    "Account Name": account_name,
+                    "Company Name": company_name,
+                    "Project Name": project_name,
+                    "ICS Link": ics_link,
+                    "Policy": policy,
+                    "Endorsement": endorsement,
+                    "Audit Resolution": audit_resolution,
+                    "Agree with AI": agree_with_ai,
+                    "Explanation": explanation
+                })
 
     # Submit Button
     if st.button("Submit"):
         if not account_name or not company_name or not project_name or not ics_link:
             st.error("Please fill out all required fields.")
+        elif not responses:
+            st.error("Please answer all endorsement questions.")
         else:
             try:
                 # Connect to Google Sheet
                 sheet = connect_to_google_sheet()
+                if not sheet:
+                    st.error("Failed to connect to Google Sheets.")
+                    return
 
                 # Prepare data to append
                 for response in responses:
