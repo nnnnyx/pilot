@@ -19,23 +19,27 @@ def authenticate():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # Use a manual OAuth flow for headless environments
-            flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
-            # Generate the authorization URL
-            auth_url, _ = flow.authorization_url(prompt="consent")
-            st.write("Please go to the following URL to authorize the app:")
-            st.write(auth_url)
-            # Ask the user to enter the authorization code
-            auth_code = st.text_input("Enter the authorization code:")
-            if auth_code:
-                # Fetch the token using the authorization code
-                flow.fetch_token(code=auth_code)
-                creds = flow.credentials
-                # Save the credentials for future use
-                with open("token.json", "w") as token:
-                    token.write(creds.to_json())
-            else:
-                st.error("Authorization code is required.")
+            try:
+                # Use a manual OAuth flow for headless environments
+                flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
+                # Generate the authorization URL
+                auth_url, _ = flow.authorization_url(prompt="consent")
+                st.write("Please go to the following URL to authorize the app:")
+                st.write(auth_url)
+                # Ask the user to enter the authorization code
+                auth_code = st.text_input("Enter the authorization code:")
+                if auth_code:
+                    # Fetch the token using the authorization code
+                    flow.fetch_token(code=auth_code)
+                    creds = flow.credentials
+                    # Save the credentials for future use
+                    with open("token.json", "w") as token:
+                        token.write(creds.to_json())
+                else:
+                    st.error("Authorization code is required.")
+                    return None
+            except Exception as e:
+                st.error(f"An error occurred during authentication: {e}")
                 return None
     return creds
 
