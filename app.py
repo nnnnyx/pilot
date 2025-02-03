@@ -134,7 +134,7 @@ def main():
                 key=f"agree_{policy}_{endorsement}"  # Unique key for each radio button
             )
 
-            # Explanation for Resolution
+            # Explanation for Resolution (Optional)
             explanation = st.selectbox(
                 f"Please explain your resolution for {endorsement}:",
                 [""] + explanation_options,  # Add an empty option
@@ -143,7 +143,7 @@ def main():
             )
 
             # Store responses for this endorsement
-            if audit_resolution and agree_with_ai and explanation:
+            if audit_resolution and agree_with_ai:  # Explanation is optional
                 responses.append({
                     "Account Name": account_name,
                     "Company Name": company_name,
@@ -153,7 +153,7 @@ def main():
                     "Endorsement": endorsement,
                     "Audit Resolution": audit_resolution,
                     "Agree with AI": agree_with_ai,
-                    "Explanation": explanation
+                    "Explanation": explanation if explanation else "No explanation provided"
                 })
 
     # Submit Button
