@@ -24,7 +24,7 @@ def authenticate():
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "client_secret.json",
                     SCOPES,
-                    redirect_uri="https://demo-endorsements-1.streamlit.app/"  # Add redirect URI
+                    redirect_uri="https://demo-endorsements-1.streamlit.app/"
                 )
                 # Generate the authorization URL
                 auth_url, _ = flow.authorization_url(prompt="consent")
@@ -66,18 +66,39 @@ def connect_to_google_sheet():
 def main():
     st.title("Policy Endorsement Form")
 
+    # Add custom CSS for policy colors
+    st.markdown("""
+        <style>
+            .general-liability { background-color: lightgreen; padding: 10px; border-radius: 5px; }
+            .automobile-liability { background-color: lightpink; padding: 10px; border-radius: 5px; }
+            .workers-compensation { background-color: violet; padding: 10px; border-radius: 5px; }
+            .umbrella-liability { background-color: lightblue; padding: 10px; border-radius: 5px; }
+        </style>
+    """, unsafe_allow_html=True)
+
     # Form Inputs
     account_name = st.text_input("Account Name")
     company_name = st.text_input("Company Name")
     project_name = st.text_input("Project Name")
     ics_link = st.text_input("ICS Link")
 
-    # Policy Selection
+    # Policy Selection with Colors
     st.subheader("Which policies require endorsements?")
     policies = st.multiselect(
         "Select policies:",
         ["General Liability", "Automobile Liability", "Umbrella Liability", "Worker's Compensation"]
     )
+
+    # Display Selected Policies with Colors
+    for policy in policies:
+        if policy == "General Liability":
+            st.markdown(f'<div class="general-liability">{policy}</div>', unsafe_allow_html=True)
+        elif policy == "Automobile Liability":
+            st.markdown(f'<div class="automobile-liability">{policy}</div>', unsafe_allow_html=True)
+        elif policy == "Worker's Compensation":
+            st.markdown(f'<div class="workers-compensation">{policy}</div>', unsafe_allow_html=True)
+        elif policy == "Umbrella Liability":
+            st.markdown(f'<div class="umbrella-liability">{policy}</div>', unsafe_allow_html=True)
 
     # Named Endorsements
     endorsements_list = [
@@ -159,6 +180,26 @@ def main():
                     "Agree with AI": agree_with_ai,
                     "Explanation": explanation if explanation else "No explanation provided"
                 })
+
+    # Optional Field at the End
+    additional_details = st.text_area(
+        "Feel free to add more details, if necessary:",
+        placeholder="Enter additional details here..."
+    )
+
+    # Include Additional Details in the Response
+    if additional_details:
+        responses.append({
+            "Account Name": account_name,
+            "Company Name": company_name,
+            "Project Name": project_name,
+            "ICS Link": ics_link,
+            "Policy": "Additional Details",
+            "Endorsement": "N/A",
+            "Audit Resolution": "N/A",
+            "Agree with AI": "N/A",
+            "Explanation": additional_details
+        })
 
     # Submit Button
     if st.button("Submit"):
