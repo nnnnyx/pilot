@@ -24,7 +24,7 @@ def authenticate():
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "client_secret.json",
                     SCOPES,
-                    redirect_uri="https://demo-endorsements-1.streamlit.app/"  # Ensure this matches the registered URI
+                    redirect_uri="https://demo-endorsements-1.streamlit.app"  # Ensure this matches the registered URI
                 )
                 # Generate the authorization URL
                 auth_url, _ = flow.authorization_url(prompt="consent")
