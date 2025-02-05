@@ -14,17 +14,21 @@ def authenticate():
     # Load existing credentials if they exist
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    # If no valid credentials, prompt the user to log in
+    # If no valid credentials or token is expired, refresh or prompt for login
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())  # Refresh the token if it's expired
+            except Exception as e:
+                st.error(f"Failed to refresh token: {e}")
+                creds = None
         else:
             try:
                 # Use a manual OAuth flow for headless environments
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "client_secret.json",
                     SCOPES,
-                    redirect_uri="https://demo-endorsements-1.streamlit.app"  # Ensure this matches the registered URI
+                    redirect_uri="https://demo-endorsements-1.streamlit.app/"
                 )
                 # Generate the authorization URL
                 auth_url, _ = flow.authorization_url(prompt="consent")
